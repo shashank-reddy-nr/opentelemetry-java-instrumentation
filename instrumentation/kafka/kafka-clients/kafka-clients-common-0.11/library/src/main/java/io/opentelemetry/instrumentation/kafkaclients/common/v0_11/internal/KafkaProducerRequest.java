@@ -27,11 +27,8 @@ public final class KafkaProducerRequest {
 
   public static KafkaProducerRequest create(
       ProducerRecord<?, ?> record, Producer<?, ?> producer, @Nullable String bootstrapServers) {
-    return new KafkaProducerRequest(
-        record,
-        extractClientId(producer),
-        bootstrapServers,
-        KafkaUtil.clusterIdFromMetadata(KafkaUtil.extractProducerMetadata(producer)));
+    // Cluster id is unavailable on the library path; javaagent supplies it via @Advice.FieldValue.
+    return new KafkaProducerRequest(record, extractClientId(producer), bootstrapServers, null);
   }
 
   public static KafkaProducerRequest create(

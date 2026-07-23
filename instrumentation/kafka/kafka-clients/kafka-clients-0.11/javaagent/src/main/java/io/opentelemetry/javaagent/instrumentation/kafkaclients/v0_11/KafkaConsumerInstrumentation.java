@@ -18,6 +18,7 @@ import io.opentelemetry.instrumentation.api.internal.InstrumenterUtil;
 import io.opentelemetry.instrumentation.api.internal.Timer;
 import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaConsumerContextUtil;
 import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaReceiveRequest;
+import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaUtil;
 import io.opentelemetry.javaagent.bootstrap.kafka.KafkaClientsConsumerProcessTracing;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
@@ -61,6 +62,10 @@ class KafkaConsumerInstrumentation implements TypeInstrumentation {
         @Advice.This Consumer<?, ?> consumer,
         @Advice.Return @Nullable ConsumerRecords<?, ?> records,
         @Advice.Thrown @Nullable Throwable error) {
+
+      // Populate VirtualField once per consumer so getClusterId() has no per-span reflection.
+      // Handles both pre-3.7 (metadata on KafkaConsumer) and 3.7+ (metadata on delegate).
+      KafkaUtil.cacheConsumerMetadata(consumer);
 
       // don't create spans when no records were received
       if (records == null || records.isEmpty()) {

@@ -190,6 +190,7 @@ public abstract class KafkaClientBaseTest {
     if (emitStableMessagingSemconv()) {
       assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));
     }
+    assertions.add(satisfies(KafkaClusterId.ATTRIBUTE_KEY, AbstractStringAssert::isNotEmpty));
     if (messageKey != null) {
       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));
     }
@@ -218,10 +219,11 @@ public abstract class KafkaClientBaseTest {
                 equalTo(MESSAGING_OPERATION, "receive"),
                 satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith("consumer")),
                 satisfies(MESSAGING_BATCH_MESSAGE_COUNT, AbstractLongAssert::isPositive)));
-    // consumer group is not available in version 0.11
+    // consumer group method (Consumer.groupMetadata()) was added in Kafka 2.4; not in 0.11 jar
     if (testLatestDeps()) {
       assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"));
     }
+    assertions.add(satisfies(KafkaClusterId.ATTRIBUTE_KEY, AbstractStringAssert::isNotEmpty));
     if (testHeaders) {
       assertions.add(equalTo(headerAttributeKey("Test-Message-Header"), singletonList("test")));
     }
@@ -249,10 +251,11 @@ public abstract class KafkaClientBaseTest {
     if (emitStableMessagingSemconv()) {
       assertions.add(satisfies(MESSAGING_KAFKA_OFFSET, AbstractLongAssert::isNotNegative));
     }
-    // consumer group is not available in version 0.11
+    // consumer group method (Consumer.groupMetadata()) was added in Kafka 2.4; not in 0.11 jar
     if (testLatestDeps()) {
       assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"));
     }
+    assertions.add(satisfies(KafkaClusterId.ATTRIBUTE_KEY, AbstractStringAssert::isNotEmpty));
     if (messageKey != null) {
       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));
     }
