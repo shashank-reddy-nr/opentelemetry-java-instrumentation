@@ -55,12 +55,10 @@ public final class KafkaUtil {
   // thread-safe and GC-friendly (entry released when the ClassLoader is collected).
   // Optional.empty() is stored when the field is absent or inaccessible, preventing repeated
   // lookups.
-  private static final ClassValue<Optional<Field>> metadataFieldCache =
-      buildFieldCache("metadata");
+  private static final ClassValue<Optional<Field>> metadataFieldCache = buildFieldCache("metadata");
 
   // Kafka 3.7+ wraps metadata inside a LegacyKafkaConsumer delegate.
-  private static final ClassValue<Optional<Field>> delegateFieldCache =
-      buildFieldCache("delegate");
+  private static final ClassValue<Optional<Field>> delegateFieldCache = buildFieldCache("delegate");
 
   private static final Set<String> reflectionFailuresLogged = ConcurrentHashMap.newKeySet();
 
@@ -194,8 +192,8 @@ public final class KafkaUtil {
    * {@link #getClusterId} needs no per-span reflection. No-op if already populated.
    *
    * <p>Supports both pre-3.7 Kafka (metadata field on {@code KafkaConsumer}) and Kafka 3.7+
-   * (metadata field on the internal {@code LegacyKafkaConsumer} delegate). Reflection per class
-   * is performed at most once via {@code ClassValue}.
+   * (metadata field on the internal {@code LegacyKafkaConsumer} delegate). Reflection per class is
+   * performed at most once via {@code ClassValue}.
    */
   public static void cacheConsumerMetadata(Consumer<?, ?> consumer) {
     if (consumerClusterIdField.get(consumer) != null) {

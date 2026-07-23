@@ -5,11 +5,12 @@
 
 package io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
 import javax.annotation.Nullable;
 import org.apache.kafka.clients.Metadata;
 import org.apache.kafka.common.Cluster;
@@ -27,13 +28,7 @@ class KafkaUtilTest {
   @Test
   void clusterIdFromMetadata_validId_returnsId() {
     Metadata metadata = mock(Metadata.class);
-    Cluster cluster =
-        new Cluster(
-            "test-cluster",
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Collections.emptySet(),
-            Collections.emptySet());
+    Cluster cluster = new Cluster("test-cluster", emptyList(), emptyList(), emptySet(), emptySet());
     when(metadata.fetch()).thenReturn(cluster);
 
     assertThat(KafkaUtil.clusterIdFromMetadata(metadata)).isEqualTo("test-cluster");
@@ -42,13 +37,7 @@ class KafkaUtilTest {
   @Test
   void clusterIdFromMetadata_emptyId_returnsNull() {
     Metadata metadata = mock(Metadata.class);
-    Cluster cluster =
-        new Cluster(
-            "",
-            Collections.emptyList(),
-            Collections.emptyList(),
-            Collections.emptySet(),
-            Collections.emptySet());
+    Cluster cluster = new Cluster("", emptyList(), emptyList(), emptySet(), emptySet());
     when(metadata.fetch()).thenReturn(cluster);
 
     assertThat(KafkaUtil.clusterIdFromMetadata(metadata)).isNull();

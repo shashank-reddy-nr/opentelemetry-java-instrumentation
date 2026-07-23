@@ -12,8 +12,8 @@ import org.apache.kafka.clients.Metadata;
 /**
  * Dedicated {@code VirtualField} value type (rather than {@code String}) so the per-instance cache
  * cannot collide with other instrumentations that attach a {@code String}-typed {@code
- * VirtualField} to the same {@code Consumer} classes — {@code VirtualField} is keyed by target
- * type + value type.
+ * VirtualField} to the same {@code Consumer} classes — {@code VirtualField} is keyed by target type
+ * + value type.
  */
 final class KafkaClusterId {
 
