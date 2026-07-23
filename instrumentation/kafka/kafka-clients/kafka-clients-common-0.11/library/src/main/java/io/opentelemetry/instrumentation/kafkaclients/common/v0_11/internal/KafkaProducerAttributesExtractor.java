@@ -29,6 +29,8 @@ final class KafkaProducerAttributesExtractor
       AttributeKey.longKey("messaging.kafka.offset");
   private static final AttributeKey<Boolean> MESSAGING_KAFKA_MESSAGE_TOMBSTONE =
       AttributeKey.booleanKey("messaging.kafka.message.tombstone");
+  private static final AttributeKey<String> MESSAGING_KAFKA_CLUSTER_ID =
+      AttributeKey.stringKey("messaging.kafka.cluster.id");
 
   @Override
   public void onStart(
@@ -41,6 +43,7 @@ final class KafkaProducerAttributesExtractor
     if (request.getRecord().value() == null) {
       attributes.put(MESSAGING_KAFKA_MESSAGE_TOMBSTONE, true);
     }
+    attributes.put(MESSAGING_KAFKA_CLUSTER_ID, request.getClusterId());
   }
 
   private static boolean canSerialize(Class<?> keyClass) {
