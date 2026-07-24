@@ -228,6 +228,8 @@ public abstract class AbstractReactorKafkaTest {
     if (messageKey != null) {
       assertions.add(equalTo(MESSAGING_KAFKA_MESSAGE_KEY, messageKey));
     }
+    assertions.add(
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
     return assertions;
   }
 
@@ -244,6 +246,8 @@ public abstract class AbstractReactorKafkaTest {
     if (HAS_CONSUMER_GROUP) {
       assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"));
     }
+    assertions.add(
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
     return assertions;
   }
 
@@ -273,6 +277,8 @@ public abstract class AbstractReactorKafkaTest {
     if (messageValue != null) {
       assertions.add(equalTo(MESSAGING_MESSAGE_BODY_SIZE, messageValue.getBytes(UTF_8).length));
     }
+    assertions.add(
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
     return assertions;
   }
 }

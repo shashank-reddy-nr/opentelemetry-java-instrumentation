@@ -112,6 +112,9 @@ public abstract class KafkaClientBaseTest {
 
     producer = new KafkaProducer<>(producerProps());
     cleanup.deferAfterAll(producer);
+    // Kafka 4.x fetches metadata lazily; force it here so ClusterResourceListener.onUpdate()
+    // fires before the first test send, otherwise interceptors see a null clusterId.
+    producer.partitionsFor(SHARED_TOPIC);
 
     consumer = new KafkaConsumer<>(consumerProps());
     cleanup.deferAfterAll(consumer);
