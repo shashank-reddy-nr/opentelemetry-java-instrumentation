@@ -171,7 +171,8 @@ abstract class AbstractInterceptorsTest extends KafkaClientBaseTest {
               if (experimental) {
                 val.matches("^localhost:\\d+(,localhost:\\d+)*$");
               }
-            }));
+            }),
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
   }
 
   private static List<AttributeAssertion> receiveAttributes() {
@@ -182,7 +183,8 @@ abstract class AbstractInterceptorsTest extends KafkaClientBaseTest {
         equalTo(MESSAGING_OPERATION, "receive"),
         equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"),
         satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith("consumer")),
-        equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1));
+        equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1),
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
   }
 
   private static List<AttributeAssertion> processAttributes(boolean experimental) {
@@ -202,6 +204,7 @@ abstract class AbstractInterceptorsTest extends KafkaClientBaseTest {
               if (experimental) {
                 val.isNotNegative();
               }
-            }));
+            }),
+        satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
   }
 }

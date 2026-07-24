@@ -60,45 +60,66 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
             trace ->
                 trace.hasSpansSatisfyingExactly(
                     span -> span.hasName("producer"),
-                    span ->
-                        span.hasName("testSingleTopic publish")
-                            .hasKind(SpanKind.PRODUCER)
-                            .hasParent(trace.getSpan(0))
-                            .hasAttributesSatisfyingExactly(
-                                equalTo(MESSAGING_SYSTEM, "kafka"),
-                                equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
-                                equalTo(MESSAGING_OPERATION, "publish"),
-                                satisfies(
-                                    stringKey("messaging.client_id"),
-                                    val -> val.startsWith("producer")),
-                                satisfies(
-                                    MESSAGING_DESTINATION_PARTITION_ID,
-                                    AbstractStringAssert::isNotEmpty),
-                                satisfies(
-                                    MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                    AbstractLongAssert::isNotNegative),
-                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")),
-                    span ->
-                        span.hasName("testSingleTopic process")
-                            .hasKind(SpanKind.CONSUMER)
-                            .hasParent(trace.getSpan(1))
-                            .hasAttributesSatisfyingExactly(
-                                equalTo(MESSAGING_SYSTEM, "kafka"),
-                                equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
-                                equalTo(MESSAGING_OPERATION, "process"),
-                                satisfies(
-                                    MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),
-                                satisfies(
-                                    MESSAGING_DESTINATION_PARTITION_ID,
-                                    AbstractStringAssert::isNotEmpty),
-                                satisfies(
-                                    MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                    AbstractLongAssert::isNotNegative),
-                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
-                                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testSingleListener"),
-                                satisfies(
-                                    stringKey("messaging.client_id"),
-                                    val -> val.startsWith("consumer"))),
+                    span -> {
+                      List<AttributeAssertion> publishAttrs =
+                          new ArrayList<>(
+                              asList(
+                                  equalTo(MESSAGING_SYSTEM, "kafka"),
+                                  equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
+                                  equalTo(MESSAGING_OPERATION, "publish"),
+                                  satisfies(
+                                      stringKey("messaging.client_id"),
+                                      val -> val.startsWith("producer")),
+                                  satisfies(
+                                      MESSAGING_DESTINATION_PARTITION_ID,
+                                      AbstractStringAssert::isNotEmpty),
+                                  satisfies(
+                                      MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                      AbstractLongAssert::isNotNegative),
+                                  equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
+                      if (!isLibraryInstrumentationTest()) {
+                        publishAttrs.add(
+                            satisfies(
+                                stringKey("messaging.kafka.cluster.id"),
+                                AbstractStringAssert::isNotEmpty));
+                      }
+                      span.hasName("testSingleTopic publish")
+                          .hasKind(SpanKind.PRODUCER)
+                          .hasParent(trace.getSpan(0))
+                          .hasAttributesSatisfyingExactly(publishAttrs);
+                    },
+                    span -> {
+                      List<AttributeAssertion> processAttrs =
+                          new ArrayList<>(
+                              asList(
+                                  equalTo(MESSAGING_SYSTEM, "kafka"),
+                                  equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
+                                  equalTo(MESSAGING_OPERATION, "process"),
+                                  satisfies(
+                                      MESSAGING_MESSAGE_BODY_SIZE,
+                                      AbstractLongAssert::isNotNegative),
+                                  satisfies(
+                                      MESSAGING_DESTINATION_PARTITION_ID,
+                                      AbstractStringAssert::isNotEmpty),
+                                  satisfies(
+                                      MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                      AbstractLongAssert::isNotNegative),
+                                  equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
+                                  equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testSingleListener"),
+                                  satisfies(
+                                      stringKey("messaging.client_id"),
+                                      val -> val.startsWith("consumer"))));
+                      if (!isLibraryInstrumentationTest()) {
+                        processAttrs.add(
+                            satisfies(
+                                stringKey("messaging.kafka.cluster.id"),
+                                AbstractStringAssert::isNotEmpty));
+                      }
+                      span.hasName("testSingleTopic process")
+                          .hasKind(SpanKind.CONSUMER)
+                          .hasParent(trace.getSpan(1))
+                          .hasAttributesSatisfyingExactly(processAttrs);
+                    },
                     span -> span.hasName("consumer").hasParent(trace.getSpan(2))));
   }
 
@@ -116,16 +137,21 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
             });
 
     List<AttributeAssertion> processAttributes =
-        asList(
-            equalTo(MESSAGING_SYSTEM, "kafka"),
-            equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
-            equalTo(MESSAGING_OPERATION, "process"),
-            satisfies(MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),
-            satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),
-            satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),
-            equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
-            equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testSingleListener"),
-            satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer")));
+        new ArrayList<>(
+            asList(
+                equalTo(MESSAGING_SYSTEM, "kafka"),
+                equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
+                equalTo(MESSAGING_OPERATION, "process"),
+                satisfies(MESSAGING_MESSAGE_BODY_SIZE, AbstractLongAssert::isNotNegative),
+                satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),
+                satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),
+                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
+                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testSingleListener"),
+                satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer"))));
+    if (!isLibraryInstrumentationTest()) {
+      processAttributes.add(
+          satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
+    }
 
     testing()
         .waitAndAssertTraces(
@@ -134,24 +160,34 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                   new ArrayList<>(
                       asList(
                           span -> span.hasName("producer"),
-                          span ->
-                              span.hasName("testSingleTopic publish")
-                                  .hasKind(SpanKind.PRODUCER)
-                                  .hasParent(trace.getSpan(0))
-                                  .hasAttributesSatisfyingExactly(
-                                      equalTo(MESSAGING_SYSTEM, "kafka"),
-                                      equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
-                                      equalTo(MESSAGING_OPERATION, "publish"),
-                                      satisfies(
-                                          stringKey("messaging.client_id"),
-                                          val -> val.startsWith("producer")),
-                                      satisfies(
-                                          MESSAGING_DESTINATION_PARTITION_ID,
-                                          AbstractStringAssert::isNotEmpty),
-                                      satisfies(
-                                          MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                          AbstractLongAssert::isNotNegative),
-                                      equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")),
+                          span -> {
+                            List<AttributeAssertion> publishAttrs =
+                                new ArrayList<>(
+                                    asList(
+                                        equalTo(MESSAGING_SYSTEM, "kafka"),
+                                        equalTo(MESSAGING_DESTINATION_NAME, "testSingleTopic"),
+                                        equalTo(MESSAGING_OPERATION, "publish"),
+                                        satisfies(
+                                            stringKey("messaging.client_id"),
+                                            val -> val.startsWith("producer")),
+                                        satisfies(
+                                            MESSAGING_DESTINATION_PARTITION_ID,
+                                            AbstractStringAssert::isNotEmpty),
+                                        satisfies(
+                                            MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                            AbstractLongAssert::isNotNegative),
+                                        equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
+                            if (!isLibraryInstrumentationTest()) {
+                              publishAttrs.add(
+                                  satisfies(
+                                      stringKey("messaging.kafka.cluster.id"),
+                                      AbstractStringAssert::isNotEmpty));
+                            }
+                            span.hasName("testSingleTopic publish")
+                                .hasKind(SpanKind.PRODUCER)
+                                .hasParent(trace.getSpan(0))
+                                .hasAttributesSatisfyingExactly(publishAttrs);
+                          },
                           span ->
                               span.hasName("testSingleTopic process")
                                   .hasKind(SpanKind.CONSUMER)
@@ -212,65 +248,95 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
             trace -> {
               trace.hasSpansSatisfyingExactlyInAnyOrder(
                   span -> span.hasName("producer"),
-                  span ->
-                      span.hasName("testBatchTopic publish")
-                          .hasKind(SpanKind.PRODUCER)
-                          .hasParent(trace.getSpan(0))
-                          .hasAttributesSatisfyingExactly(
-                              equalTo(MESSAGING_SYSTEM, "kafka"),
-                              equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
-                              equalTo(MESSAGING_OPERATION, "publish"),
-                              satisfies(
-                                  stringKey("messaging.client_id"),
-                                  val -> val.startsWith("producer")),
-                              satisfies(
-                                  MESSAGING_DESTINATION_PARTITION_ID,
-                                  AbstractStringAssert::isNotEmpty),
-                              satisfies(
-                                  MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                  AbstractLongAssert::isNotNegative),
-                              equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")),
-                  span ->
-                      span.hasName("testBatchTopic publish")
-                          .hasKind(SpanKind.PRODUCER)
-                          .hasParent(trace.getSpan(0))
-                          .hasAttributesSatisfyingExactly(
-                              equalTo(MESSAGING_SYSTEM, "kafka"),
-                              equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
-                              equalTo(MESSAGING_OPERATION, "publish"),
-                              satisfies(
-                                  stringKey("messaging.client_id"),
-                                  val -> val.startsWith("producer")),
-                              satisfies(
-                                  MESSAGING_DESTINATION_PARTITION_ID,
-                                  AbstractStringAssert::isNotEmpty),
-                              satisfies(
-                                  MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                  AbstractLongAssert::isNotNegative),
-                              equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "20")));
+                  span -> {
+                    List<AttributeAssertion> publish10Attrs =
+                        new ArrayList<>(
+                            asList(
+                                equalTo(MESSAGING_SYSTEM, "kafka"),
+                                equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
+                                equalTo(MESSAGING_OPERATION, "publish"),
+                                satisfies(
+                                    stringKey("messaging.client_id"),
+                                    val -> val.startsWith("producer")),
+                                satisfies(
+                                    MESSAGING_DESTINATION_PARTITION_ID,
+                                    AbstractStringAssert::isNotEmpty),
+                                satisfies(
+                                    MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                    AbstractLongAssert::isNotNegative),
+                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
+                    if (!isLibraryInstrumentationTest()) {
+                      publish10Attrs.add(
+                          satisfies(
+                              stringKey("messaging.kafka.cluster.id"),
+                              AbstractStringAssert::isNotEmpty));
+                    }
+                    span.hasName("testBatchTopic publish")
+                        .hasKind(SpanKind.PRODUCER)
+                        .hasParent(trace.getSpan(0))
+                        .hasAttributesSatisfyingExactly(publish10Attrs);
+                  },
+                  span -> {
+                    List<AttributeAssertion> publish20Attrs =
+                        new ArrayList<>(
+                            asList(
+                                equalTo(MESSAGING_SYSTEM, "kafka"),
+                                equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
+                                equalTo(MESSAGING_OPERATION, "publish"),
+                                satisfies(
+                                    stringKey("messaging.client_id"),
+                                    val -> val.startsWith("producer")),
+                                satisfies(
+                                    MESSAGING_DESTINATION_PARTITION_ID,
+                                    AbstractStringAssert::isNotEmpty),
+                                satisfies(
+                                    MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                    AbstractLongAssert::isNotNegative),
+                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "20")));
+                    if (!isLibraryInstrumentationTest()) {
+                      publish20Attrs.add(
+                          satisfies(
+                              stringKey("messaging.kafka.cluster.id"),
+                              AbstractStringAssert::isNotEmpty));
+                    }
+                    span.hasName("testBatchTopic publish")
+                        .hasKind(SpanKind.PRODUCER)
+                        .hasParent(trace.getSpan(0))
+                        .hasAttributesSatisfyingExactly(publish20Attrs);
+                  });
 
               producer1.set(trace.getSpan(1));
               producer2.set(trace.getSpan(2));
             },
             trace ->
                 trace.hasSpansSatisfyingExactly(
-                    span ->
-                        span.hasName("testBatchTopic process")
-                            .hasKind(SpanKind.CONSUMER)
-                            .hasNoParent()
-                            .hasLinksSatisfying(
-                                links(
-                                    producer1.get().getSpanContext(),
-                                    producer2.get().getSpanContext()))
-                            .hasAttributesSatisfyingExactly(
-                                equalTo(MESSAGING_SYSTEM, "kafka"),
-                                equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
-                                equalTo(MESSAGING_OPERATION, "process"),
-                                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testBatchListener"),
-                                satisfies(
-                                    stringKey("messaging.client_id"),
-                                    val -> val.startsWith("consumer")),
-                                equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 2)),
+                    span -> {
+                      List<AttributeAssertion> batchProcessAttrs =
+                          new ArrayList<>(
+                              asList(
+                                  equalTo(MESSAGING_SYSTEM, "kafka"),
+                                  equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
+                                  equalTo(MESSAGING_OPERATION, "process"),
+                                  equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testBatchListener"),
+                                  satisfies(
+                                      stringKey("messaging.client_id"),
+                                      val -> val.startsWith("consumer")),
+                                  equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 2)));
+                      if (!isLibraryInstrumentationTest()) {
+                        batchProcessAttrs.add(
+                            satisfies(
+                                stringKey("messaging.kafka.cluster.id"),
+                                AbstractStringAssert::isNotEmpty));
+                      }
+                      span.hasName("testBatchTopic process")
+                          .hasKind(SpanKind.CONSUMER)
+                          .hasNoParent()
+                          .hasLinksSatisfying(
+                              links(
+                                  producer1.get().getSpanContext(),
+                                  producer2.get().getSpanContext()))
+                          .hasAttributesSatisfyingExactly(batchProcessAttrs);
+                    },
                     span -> span.hasName("consumer").hasParent(trace.getSpan(0))));
   }
 
@@ -290,13 +356,18 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
     AtomicReference<SpanData> producer = new AtomicReference<>();
 
     List<AttributeAssertion> processAttributes =
-        asList(
-            equalTo(MESSAGING_SYSTEM, "kafka"),
-            equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
-            equalTo(MESSAGING_OPERATION, "process"),
-            equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testBatchListener"),
-            satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer")),
-            equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1));
+        new ArrayList<>(
+            asList(
+                equalTo(MESSAGING_SYSTEM, "kafka"),
+                equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
+                equalTo(MESSAGING_OPERATION, "process"),
+                equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testBatchListener"),
+                satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer")),
+                equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1)));
+    if (!isLibraryInstrumentationTest()) {
+      processAttributes.add(
+          satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
+    }
 
     testing()
         .waitAndAssertSortedTraces(
@@ -304,24 +375,34 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
             trace -> {
               trace.hasSpansSatisfyingExactly(
                   span -> span.hasName("producer"),
-                  span ->
-                      span.hasName("testBatchTopic publish")
-                          .hasKind(SpanKind.PRODUCER)
-                          .hasParent(trace.getSpan(0))
-                          .hasAttributesSatisfyingExactly(
-                              equalTo(MESSAGING_SYSTEM, "kafka"),
-                              equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
-                              equalTo(MESSAGING_OPERATION, "publish"),
-                              satisfies(
-                                  stringKey("messaging.client_id"),
-                                  val -> val.startsWith("producer")),
-                              satisfies(
-                                  MESSAGING_DESTINATION_PARTITION_ID,
-                                  AbstractStringAssert::isNotEmpty),
-                              satisfies(
-                                  MESSAGING_KAFKA_MESSAGE_OFFSET,
-                                  AbstractLongAssert::isNotNegative),
-                              equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
+                  span -> {
+                    List<AttributeAssertion> publishAttrs =
+                        new ArrayList<>(
+                            asList(
+                                equalTo(MESSAGING_SYSTEM, "kafka"),
+                                equalTo(MESSAGING_DESTINATION_NAME, "testBatchTopic"),
+                                equalTo(MESSAGING_OPERATION, "publish"),
+                                satisfies(
+                                    stringKey("messaging.client_id"),
+                                    val -> val.startsWith("producer")),
+                                satisfies(
+                                    MESSAGING_DESTINATION_PARTITION_ID,
+                                    AbstractStringAssert::isNotEmpty),
+                                satisfies(
+                                    MESSAGING_KAFKA_MESSAGE_OFFSET,
+                                    AbstractLongAssert::isNotNegative),
+                                equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
+                    if (!isLibraryInstrumentationTest()) {
+                      publishAttrs.add(
+                          satisfies(
+                              stringKey("messaging.kafka.cluster.id"),
+                              AbstractStringAssert::isNotEmpty));
+                    }
+                    span.hasName("testBatchTopic publish")
+                        .hasKind(SpanKind.PRODUCER)
+                        .hasParent(trace.getSpan(0))
+                        .hasAttributesSatisfyingExactly(publishAttrs);
+                  });
 
               producer.set(trace.getSpan(1));
             },
