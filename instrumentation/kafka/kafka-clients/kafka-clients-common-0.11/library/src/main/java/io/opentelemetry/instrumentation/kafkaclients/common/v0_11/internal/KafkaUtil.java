@@ -47,9 +47,10 @@ public final class KafkaUtil {
   private static final VirtualField<Consumer<?, ?>, Map<String, String>> consumerInfoField =
       VirtualField.find(Consumer.class, Map.class);
 
-  // Cached per-instance; resolved lazily after the first metadata refresh.
-  private static final VirtualField<Consumer<?, ?>, KafkaClusterId> consumerClusterIdField =
-      VirtualField.find(Consumer.class, KafkaClusterId.class);
+  // Cached per-instance. Metadata is a kafka-clients application class (same classloader as
+  // Consumer), so it is safe to use as the VirtualField value type across instrumentation modules.
+  private static final VirtualField<Consumer<?, ?>, Metadata> consumerMetadataField =
+      VirtualField.find(Consumer.class, Metadata.class);
 
   // ClassValue caches the reflective Field per class. computeValue() runs at most once per class —
   // thread-safe and GC-friendly (entry released when the ClassLoader is collected).
@@ -180,11 +181,7 @@ public final class KafkaUtil {
     if (consumer == null) {
       return null;
     }
-    KafkaClusterId cached = consumerClusterIdField.get(consumer);
-    if (cached == null) {
-      return null;
-    }
-    return clusterIdFromMetadata(cached.metadata);
+    return clusterIdFromMetadata(consumerMetadataField.get(consumer));
   }
 
   /**
@@ -196,7 +193,7 @@ public final class KafkaUtil {
    * performed at most once via {@code ClassValue}.
    */
   public static void cacheConsumerMetadata(Consumer<?, ?> consumer) {
-    if (consumerClusterIdField.get(consumer) != null) {
+    if (consumerMetadataField.get(consumer) != null) {
       return;
     }
     // Pre-3.7: metadata field lives directly on KafkaConsumer.
@@ -206,7 +203,7 @@ public final class KafkaUtil {
       metadata = extractMetadataFromHolder(extractDelegate(consumer));
     }
     if (metadata != null) {
-      consumerClusterIdField.set(consumer, KafkaClusterId.of(metadata));
+      consumerMetadataField.set(consumer, metadata);
     }
   }
 
