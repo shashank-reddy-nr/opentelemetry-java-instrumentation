@@ -5,6 +5,9 @@
 
 package io.opentelemetry.javaagent.instrumentation.vertx.kafka.v4_0;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.opentelemetry.instrumentation.testing.junit.AgentInstrumentationExtension;
 import io.opentelemetry.instrumentation.testing.junit.InstrumentationExtension;
 import io.opentelemetry.javaagent.instrumentation.vertx.kafka.AbstractSingleRecordVertxKafkaTest;
@@ -15,6 +18,8 @@ import io.vertx.kafka.client.consumer.KafkaConsumer;
 import io.vertx.kafka.client.producer.KafkaProducer;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import io.vertx.kafka.client.producer.RecordMetadata;
+import java.util.concurrent.CountDownLatch;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 class SingleRecordVertxKafka4Test extends AbstractSingleRecordVertxKafkaTest {
@@ -24,6 +29,13 @@ class SingleRecordVertxKafka4Test extends AbstractSingleRecordVertxKafkaTest {
   @Override
   protected InstrumentationExtension testing() {
     return testing;
+  }
+
+  @BeforeAll
+  void warmUpProducer() throws InterruptedException {
+    CountDownLatch producerReady = new CountDownLatch(1);
+    kafkaProducer.partitionsFor("warmupTopic", ar -> producerReady.countDown());
+    assertThat(producerReady.await(30, SECONDS)).isTrue();
   }
 
   @Override
