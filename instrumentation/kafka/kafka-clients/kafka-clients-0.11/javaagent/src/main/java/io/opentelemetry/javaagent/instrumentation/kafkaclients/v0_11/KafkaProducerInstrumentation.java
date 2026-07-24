@@ -124,7 +124,6 @@ class KafkaProducerInstrumentation implements TypeInstrumentation {
         @Advice.FieldValue("apiVersions") ApiVersions apiVersions,
         @Advice.FieldValue("clientId") String clientId,
         @Advice.FieldValue("producerConfig") ProducerConfig producerConfig,
-        @Advice.FieldValue("metadata") Metadata kafkaProducerMetadata,
         @Advice.Argument(0) ProducerRecord<?, ?> originalRecord,
         @Advice.Argument(1) @Nullable Callback originalCallback) {
       ProducerRecord<?, ?> record = originalRecord;
@@ -134,7 +133,7 @@ class KafkaProducerInstrumentation implements TypeInstrumentation {
           KafkaUtil.extractBootstrapServers(
               producerConfig.getList(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG));
       KafkaProducerRequest request =
-          KafkaProducerRequest.create(record, clientId, bootstrapServers, kafkaProducerMetadata);
+          KafkaProducerRequest.create(record, clientId, bootstrapServers);
       AdviceScope adviceScope = AdviceScope.start(request);
       if (adviceScope == null) {
         return new Object[] {null, record, callback};
