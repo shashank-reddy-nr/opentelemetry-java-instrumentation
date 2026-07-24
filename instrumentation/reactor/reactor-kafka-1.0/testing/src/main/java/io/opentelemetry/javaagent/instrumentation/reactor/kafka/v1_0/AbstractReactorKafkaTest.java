@@ -93,6 +93,12 @@ public abstract class AbstractReactorKafkaTest {
 
     sender = KafkaSender.create(senderOptions());
     cleanup.deferAfterAll(sender::close);
+    // KafkaSender creates its KafkaProducer lazily; force it to connect and fetch cluster metadata
+    // before tests run, otherwise the first publish span may record a null cluster ID.
+    sender
+        .send(Flux.just(SenderRecord.create("warmupTopic", 0, null, "warmup", "warmup", null)))
+        .blockLast(Duration.ofSeconds(30));
+    testing.clearData();
     receiver = KafkaReceiver.create(receiverOptions());
   }
 
