@@ -44,6 +44,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
+import org.assertj.core.api.AbstractStringAssert;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -124,7 +125,10 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                           equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
                           equalTo(
                               stringKey("messaging.kafka.bootstrap.servers"),
-                              EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null)));
+                              EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null),
+                          satisfies(
+                              stringKey("messaging.kafka.cluster.id"),
+                              AbstractStringAssert::isNotEmpty)));
           producerPendingRef.set(trace.getSpan(0));
         },
         trace -> {
@@ -143,6 +147,9 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                 if (testLatestDeps()) {
                   assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test-application"));
                 }
+                assertions.add(
+                    satisfies(
+                        stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
                 span.hasName(STREAM_PENDING + " receive")
                     .hasKind(SpanKind.CONSUMER)
                     .hasNoParent()
@@ -177,6 +184,9 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                 if (testLatestDeps()) {
                   assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test-application"));
                 }
+                assertions.add(
+                    satisfies(
+                        stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
                 span.hasName(STREAM_PENDING + " process")
                     .hasKind(SpanKind.CONSUMER)
                     .hasParent(trace.getSpan(0))
@@ -202,7 +212,10 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                           equalTo(MESSAGING_KAFKA_MESSAGE_OFFSET, 0),
                           equalTo(
                               stringKey("messaging.kafka.bootstrap.servers"),
-                              EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null)));
+                              EXPERIMENTAL_ATTRIBUTES ? kafka.getBootstrapServers() : null),
+                          satisfies(
+                              stringKey("messaging.kafka.cluster.id"),
+                              AbstractStringAssert::isNotEmpty)));
 
           producerProcessedRef.set(trace.getSpan(2));
         },
@@ -223,6 +236,10 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                   if (testLatestDeps()) {
                     assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"));
                   }
+                  assertions.add(
+                      satisfies(
+                          stringKey("messaging.kafka.cluster.id"),
+                          AbstractStringAssert::isNotEmpty));
                   span.hasName(STREAM_PROCESSED + " receive")
                       .hasKind(SpanKind.CONSUMER)
                       .hasNoParent()
@@ -257,6 +274,10 @@ class KafkaStreamsDefaultTest extends KafkaStreamsBaseTest {
                   if (testLatestDeps()) {
                     assertions.add(equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"));
                   }
+                  assertions.add(
+                      satisfies(
+                          stringKey("messaging.kafka.cluster.id"),
+                          AbstractStringAssert::isNotEmpty));
                   span.hasName(STREAM_PROCESSED + " process")
                       .hasKind(SpanKind.CONSUMER)
                       .hasParent(trace.getSpan(0))

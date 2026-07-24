@@ -86,6 +86,7 @@ abstract class KafkaStreamsBaseTest {
 
     producer = new KafkaProducer<>(producerProps(kafka.getBootstrapServers()));
     cleanup.deferAfterAll(producer);
+    producer.partitionsFor(STREAM_PENDING);
 
     Map<String, Object> consumerProps =
         ImmutableMap.of(
