@@ -42,6 +42,13 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
 
   protected abstract boolean isLibraryInstrumentationTest();
 
+  private void maybeAddClusterId(List<AttributeAssertion> attrs) {
+    if (!isLibraryInstrumentationTest()) {
+      attrs.add(
+          satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
+    }
+  }
+
   @Test
   void shouldCreateSpansForSingleRecordProcess() {
     testing()
@@ -77,12 +84,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                       MESSAGING_KAFKA_MESSAGE_OFFSET,
                                       AbstractLongAssert::isNotNegative),
                                   equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
-                      if (!isLibraryInstrumentationTest()) {
-                        publishAttrs.add(
-                            satisfies(
-                                stringKey("messaging.kafka.cluster.id"),
-                                AbstractStringAssert::isNotEmpty));
-                      }
+                      maybeAddClusterId(publishAttrs);
                       span.hasName("testSingleTopic publish")
                           .hasKind(SpanKind.PRODUCER)
                           .hasParent(trace.getSpan(0))
@@ -109,12 +111,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                   satisfies(
                                       stringKey("messaging.client_id"),
                                       val -> val.startsWith("consumer"))));
-                      if (!isLibraryInstrumentationTest()) {
-                        processAttrs.add(
-                            satisfies(
-                                stringKey("messaging.kafka.cluster.id"),
-                                AbstractStringAssert::isNotEmpty));
-                      }
+                      maybeAddClusterId(processAttrs);
                       span.hasName("testSingleTopic process")
                           .hasKind(SpanKind.CONSUMER)
                           .hasParent(trace.getSpan(1))
@@ -148,10 +145,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                 equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10"),
                 equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testSingleListener"),
                 satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer"))));
-    if (!isLibraryInstrumentationTest()) {
-      processAttributes.add(
-          satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
-    }
+    maybeAddClusterId(processAttributes);
 
     testing()
         .waitAndAssertTraces(
@@ -177,12 +171,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                             MESSAGING_KAFKA_MESSAGE_OFFSET,
                                             AbstractLongAssert::isNotNegative),
                                         equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
-                            if (!isLibraryInstrumentationTest()) {
-                              publishAttrs.add(
-                                  satisfies(
-                                      stringKey("messaging.kafka.cluster.id"),
-                                      AbstractStringAssert::isNotEmpty));
-                            }
+                            maybeAddClusterId(publishAttrs);
                             span.hasName("testSingleTopic publish")
                                 .hasKind(SpanKind.PRODUCER)
                                 .hasParent(trace.getSpan(0))
@@ -265,12 +254,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                     MESSAGING_KAFKA_MESSAGE_OFFSET,
                                     AbstractLongAssert::isNotNegative),
                                 equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
-                    if (!isLibraryInstrumentationTest()) {
-                      publish10Attrs.add(
-                          satisfies(
-                              stringKey("messaging.kafka.cluster.id"),
-                              AbstractStringAssert::isNotEmpty));
-                    }
+                    maybeAddClusterId(publish10Attrs);
                     span.hasName("testBatchTopic publish")
                         .hasKind(SpanKind.PRODUCER)
                         .hasParent(trace.getSpan(0))
@@ -293,12 +277,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                     MESSAGING_KAFKA_MESSAGE_OFFSET,
                                     AbstractLongAssert::isNotNegative),
                                 equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "20")));
-                    if (!isLibraryInstrumentationTest()) {
-                      publish20Attrs.add(
-                          satisfies(
-                              stringKey("messaging.kafka.cluster.id"),
-                              AbstractStringAssert::isNotEmpty));
-                    }
+                    maybeAddClusterId(publish20Attrs);
                     span.hasName("testBatchTopic publish")
                         .hasKind(SpanKind.PRODUCER)
                         .hasParent(trace.getSpan(0))
@@ -322,12 +301,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                       stringKey("messaging.client_id"),
                                       val -> val.startsWith("consumer")),
                                   equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 2)));
-                      if (!isLibraryInstrumentationTest()) {
-                        batchProcessAttrs.add(
-                            satisfies(
-                                stringKey("messaging.kafka.cluster.id"),
-                                AbstractStringAssert::isNotEmpty));
-                      }
+                      maybeAddClusterId(batchProcessAttrs);
                       span.hasName("testBatchTopic process")
                           .hasKind(SpanKind.CONSUMER)
                           .hasNoParent()
@@ -364,10 +338,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                 equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "testBatchListener"),
                 satisfies(stringKey("messaging.client_id"), val -> val.startsWith("consumer")),
                 equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1)));
-    if (!isLibraryInstrumentationTest()) {
-      processAttributes.add(
-          satisfies(stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty));
-    }
+    maybeAddClusterId(processAttributes);
 
     testing()
         .waitAndAssertSortedTraces(
@@ -392,12 +363,7 @@ public abstract class AbstractSpringKafkaNoReceiveTelemetryTest extends Abstract
                                     MESSAGING_KAFKA_MESSAGE_OFFSET,
                                     AbstractLongAssert::isNotNegative),
                                 equalTo(MESSAGING_KAFKA_MESSAGE_KEY, "10")));
-                    if (!isLibraryInstrumentationTest()) {
-                      publishAttrs.add(
-                          satisfies(
-                              stringKey("messaging.kafka.cluster.id"),
-                              AbstractStringAssert::isNotEmpty));
-                    }
+                    maybeAddClusterId(publishAttrs);
                     span.hasName("testBatchTopic publish")
                         .hasKind(SpanKind.PRODUCER)
                         .hasParent(trace.getSpan(0))
