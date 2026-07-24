@@ -11,6 +11,8 @@ import static net.bytebuddy.matcher.ElementMatchers.isPublic;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
 
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.instrumentation.kafkaclients.common.v0_11.internal.KafkaProducerRequest;
@@ -52,6 +54,9 @@ class KafkaProducerInstrumentation implements TypeInstrumentation {
   public static class SendAdvice {
 
     public static class AdviceScope {
+      private static final AttributeKey<String> MESSAGING_KAFKA_CLUSTER_ID =
+          AttributeKey.stringKey("messaging.kafka.cluster.id");
+
       private final KafkaProducerRequest request;
       private final Context context;
       private final Scope scope;
@@ -85,6 +90,20 @@ class KafkaProducerInstrumentation implements TypeInstrumentation {
           return KafkaPropagation.propagateContext(context, record);
         }
         return record;
+      }
+
+      // Called in @Advice.OnMethodExit after send() returns. By this point, doSend() has
+      // called waitOnMetadata() which blocks until metadata (including cluster ID) is fetched.
+      // This handles producers whose first send() fires our enter advice before any metadata
+      // has been retrieved (e.g., the internal KafkaStreams producer).
+      public void updateClusterIdIfAbsent(Metadata kafkaProducerMetadata) {
+        if (request.getClusterId() != null) {
+          return;
+        }
+        String clusterId = KafkaUtil.clusterIdFromMetadata(kafkaProducerMetadata);
+        if (clusterId != null) {
+          Span.fromContext(context).setAttribute(MESSAGING_KAFKA_CLUSTER_ID, clusterId);
+        }
       }
 
       public void end(@Nullable Throwable throwable) {
@@ -127,10 +146,13 @@ class KafkaProducerInstrumentation implements TypeInstrumentation {
 
     @Advice.OnMethodExit(onThrowable = Throwable.class, suppress = Throwable.class, inline = false)
     public static void stopSpan(
-        @Advice.Thrown @Nullable Throwable throwable, @Advice.Enter Object[] enterResult) {
+        @Advice.Thrown @Nullable Throwable throwable,
+        @Advice.Enter Object[] enterResult,
+        @Advice.FieldValue("metadata") Metadata kafkaProducerMetadata) {
 
       AdviceScope adviceScope = (AdviceScope) enterResult[0];
       if (adviceScope != null) {
+        adviceScope.updateClusterIdIfAbsent(kafkaProducerMetadata);
         adviceScope.end(throwable);
       }
     }
