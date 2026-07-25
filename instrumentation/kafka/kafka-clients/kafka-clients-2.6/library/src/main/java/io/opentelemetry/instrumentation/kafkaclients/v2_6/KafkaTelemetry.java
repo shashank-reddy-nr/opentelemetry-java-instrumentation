@@ -123,6 +123,7 @@ public final class KafkaTelemetry {
               } catch (InvocationTargetException e) {
                 Throwable error = e.getCause();
                 if ("poll".equals(method.getName())) {
+                  KafkaUtil.cacheConsumerMetadata(consumer);
                   consumerTelemetry.buildAndFinishErrorSpan(consumer, timer, error);
                 }
                 throw error;
@@ -131,6 +132,7 @@ public final class KafkaTelemetry {
               // ConsumerRecords<K, V> poll(Duration duration)
               if ("poll".equals(method.getName()) && result instanceof ConsumerRecords) {
                 ConsumerRecords<K, V> consumerRecords = (ConsumerRecords<K, V>) result;
+                KafkaUtil.cacheConsumerMetadata(consumer);
                 Context receiveContext =
                     consumerTelemetry.buildAndFinishSpan(consumerRecords, consumer, timer);
                 if (receiveContext == null) {

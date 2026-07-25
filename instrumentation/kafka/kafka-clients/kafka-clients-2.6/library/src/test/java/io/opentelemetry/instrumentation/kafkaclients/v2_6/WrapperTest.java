@@ -135,7 +135,9 @@ class WrapperTest extends AbstractWrapperTest {
                 satisfies(MESSAGING_DESTINATION_PARTITION_ID, AbstractStringAssert::isNotEmpty),
                 satisfies(MESSAGING_KAFKA_MESSAGE_OFFSET, AbstractLongAssert::isNotNegative),
                 equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"),
-                satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith("consumer"))));
+                satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith("consumer")),
+                satisfies(
+                    stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty)));
     if (testHeaders) {
       assertions.add(
           equalTo(
@@ -157,7 +159,9 @@ class WrapperTest extends AbstractWrapperTest {
                 equalTo(MESSAGING_OPERATION, "receive"),
                 equalTo(MESSAGING_KAFKA_CONSUMER_GROUP, "test"),
                 satisfies(MESSAGING_CLIENT_ID, val -> val.startsWith("consumer")),
-                equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1)));
+                equalTo(MESSAGING_BATCH_MESSAGE_COUNT, 1),
+                satisfies(
+                    stringKey("messaging.kafka.cluster.id"), AbstractStringAssert::isNotEmpty)));
     if (testHeaders) {
       assertions.add(
           equalTo(
